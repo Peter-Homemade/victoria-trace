@@ -3,6 +3,35 @@
 This file records material work performed specifically for the Victoria Trace
 OpenAI Build Week 2026 project.
 
+## 2026-07-18 — Deterministic state projector
+
+### Added
+
+- Implemented immutable state projection for complete ledgers and inclusive
+  revision prefixes.
+- Separated lifecycle state, semantic annotations, and causal relationship edges
+  so superseded, unresolved, resolved, historical, corrected, and authoritative
+  evidence remain independently inspectable.
+- Added explicit transition handling for `supersedes`, `interprets`, `cites`,
+  `corrects`, `resolves`, `clarifies`, and `generated_from` relationships.
+- Added focused projector tests for Halcyon history snapshots, causal evidence,
+  immutability, deterministic replay, invalid prefixes, conflicting terminal
+  transitions, human authority, history preservation, and timestamp independence.
+
+### Boundaries preserved
+
+- Made no event-schema, ledger, synthetic-fixture, or existing-test changes.
+- Did not implement resolver behavior, correction creation or persistence,
+  regression execution, CLI commands, network access, APIs, or LLM calls.
+- Performed no commit or push.
+
+### Verified
+
+- All 31 model, ledger, and projector tests pass on Python 3.12.13 using
+  `unittest`.
+- Confirmed by SHA-256 comparison that the event model, ledger, synthetic
+  fixture, and their existing tests remained unchanged.
+
 ## 2026-07-18 — Codex and GPT-5.6 attribution clarification
 
 ### Documented

@@ -9,8 +9,9 @@ uncertain, or corrected.
 
 This repository is the primary OpenAI Build Week 2026 implementation of that
 idea. It currently contains the project foundation, demo specification, immutable
-event model, append-only ledger, and synthetic history fixture. Projection,
-answering, corrections, and command-line behavior have not yet been implemented.
+event model, append-only ledger, synthetic history fixture, and deterministic
+state projector. Answering, correction workflows, regression execution, and
+command-line behavior have not yet been implemented.
 
 ## The demo promise
 
@@ -33,7 +34,8 @@ overwrite history.
 The vertical slice is deliberately small:
 
 - a synthetic, append-only event ledger stored locally (implemented);
-- a deterministic projector that derives current memory state from the ledger;
+- a deterministic projector that derives auditable state from complete or
+  revision-prefix ledger history (implemented);
 - a narrow question resolver that returns an answer, confidence state, and
   evidence chain;
 - a correction workflow that appends a new revision and records a regression

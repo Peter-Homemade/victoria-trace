@@ -38,17 +38,17 @@ The finished vertical slice must:
 | --- | --- | --- |
 | Synthetic fixture | Provide the fixed events and canonical question without private data. | Implemented |
 | Append-only ledger | Store ordered, versioned JSON records locally; never overwrite earlier memory. | Implemented |
-| State projector | Replay events and classify claims as current, superseded, uncertain, corrected, or resolved. | Placeholder only |
+| State projector | Replay complete or revision-prefix history and derive immutable lifecycle, semantic, and causal state. | Implemented |
 | Question resolver | Match the canonical question, select the current claim, and return evidence identifiers. | Placeholder only |
 | Correction service | Validate and append a human correction plus its regression case atomically. | Placeholder only |
 | CLI | Expose `show-history`, `ask`, `correct`, and `verify`-style demo operations. | Not implemented |
-| Tests | Check replay rules, evidence output, immutability, correction behavior, and the generated regression. | Ledger-focused coverage only |
+| Tests | Check replay rules, evidence output, immutability, correction behavior, and the generated regression. | Ledger and projector coverage implemented; later phases pending |
 
 The initial implementation uses newline-delimited JSON for reviewable fixtures and
 Python 3.12 standard-library code for the event model, validation, persistence,
-and tests. If atomic local updates become necessary beyond the single-process
-demo, `sqlite3` is the preferred standard-library alternative; using both storage
-approaches is out of scope for the first slice.
+state projection, and tests. If atomic local updates become necessary beyond the
+single-process demo, `sqlite3` is the preferred standard-library alternative;
+using both storage approaches is out of scope for the first slice.
 
 ## Minimal memory model
 
