@@ -8,6 +8,7 @@ import sys
 import tempfile
 from typing import TextIO
 
+from .audit import AuditError, AuditSession, render_audit_opening
 from .correction import (
     CorrectionError,
     CorrectionResult,
@@ -483,6 +484,28 @@ def _command_verify(
     return EXIT_SUCCESS
 
 
+def _command_chat(input_stream: TextIO, stream: TextIO) -> int:
+    reference = EventLedger.load_jsonl(_REFERENCE_FIXTURE)
+    session = AuditSession.from_reference_ledger(reference)
+    print(render_audit_opening(session.revision), file=stream)
+
+    while True:
+        print(file=stream)
+        print("audit> ", end="", file=stream, flush=True)
+        user_input = input_stream.readline()
+        if user_input == "":
+            print(file=stream)
+            print(
+                "End of input. Disposable audit state was discarded.",
+                file=stream,
+            )
+            return EXIT_SUCCESS
+        turn = session.handle(user_input)
+        print(turn.message, file=stream)
+        if turn.should_exit:
+            return EXIT_SUCCESS
+
+
 def _create_disposable_revision_four(path: Path) -> tuple[EventLedger, bytes]:
     reference = EventLedger.load_jsonl(_REFERENCE_FIXTURE)
     revision_four = EventLedger.from_events(reference[:4])
@@ -722,6 +745,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     commands.add_parser(
+        "chat",
+        help="interactively audit the disposable synthetic Halcyon proof",
+    )
+
+    commands.add_parser(
         "demo",
         help="run the complete proof using disposable local data",
     )
@@ -731,11 +759,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main(
     argv: list[str] | None = None,
     *,
+    stdin: TextIO | None = None,
     stdout: TextIO | None = None,
     stderr: TextIO | None = None,
 ) -> int:
     """Run the CLI and return a process-compatible exit code."""
 
+    input_stream = sys.stdin if stdin is None else stdin
     output = sys.stdout if stdout is None else stdout
     errors = sys.stderr if stderr is None else stderr
     parser = build_parser()
@@ -750,10 +780,13 @@ def main(
             return _command_correct(arguments.ledger, output)
         if arguments.command == "verify":
             return _command_verify(arguments.ledger, output)
+        if arguments.command == "chat":
+            return _command_chat(input_stream, output)
         if arguments.command == "demo":
             return _command_demo(output)
         parser.error(f"unsupported command: {arguments.command}")
     except (
+        AuditError,
         CLIError,
         CorrectionError,
         LedgerValidationError,

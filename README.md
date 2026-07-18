@@ -22,7 +22,8 @@ This repository implements one narrow, deterministic, auditable vertical slice:
 the fully synthetic Halcyon release-manifest scenario. An append-only event
 ledger records an earlier decision, its supersession, unresolved ambiguity, an
 incorrect answer, a human-owner correction, and a durable regression case. The
-guided CLI makes that complete evidence chain visible.
+guided proof makes that complete evidence chain visible automatically, while the
+interactive audit mode lets a judge inspect the same chain in their own order.
 
 This is the working Build Week proof, not the full broader Victoria architecture.
 
@@ -39,20 +40,68 @@ the project run directly from a clean checkout without installation or a
 
 ### Windows PowerShell
 
+Guided proof:
+
 ```powershell
 python -m src.victoria_trace demo
+```
+
+Interactive audit:
+
+```powershell
+python -m src.victoria_trace chat
+```
+
+All tests:
+
+```powershell
 python -m unittest discover -s tests
 ```
 
 ### macOS and Linux
 
+Guided proof:
+
 ```bash
 python3 -m src.victoria_trace demo
+```
+
+Interactive audit:
+
+```bash
+python3 -m src.victoria_trace chat
+```
+
+All tests:
+
+```bash
 python3 -m unittest discover -s tests
 ```
 
-The first command runs the complete demonstration. The second runs the complete
-test suite.
+The guided proof runs the complete evidence line automatically. The interactive
+audit lets a judge investigate supported Halcyon topics in any order, starting at
+revision 4 before correction. It is deterministic and deliberately limited: it
+is not an LLM or general chatbot. Neither mode requires installation, an API key,
+a network connection, or a paid service.
+
+### Example interactive audit
+
+```text
+audit> What is the current answer?
+State: UNCERTAIN
+Location: unresolved (no candidate selected)
+
+audit> correct
+Apply this correction? Type yes or no.
+
+audit> yes
+After state: SUPPORTED
+Appended: COR-001 -> REG-001
+
+audit> verify
+Assertions: 12/12 passed
+REG-001 verifies the resolver result; it is not answer authority.
+```
 
 ## What to look for
 
@@ -86,7 +135,7 @@ Human correction workflow
 Stored regression runner
            |
            v
-Guided CLI demonstration
+Guided proof or interactive audit
 ```
 
 ## CLI commands
@@ -97,13 +146,16 @@ python -m src.victoria_trace ask --revision 4
 python -m src.victoria_trace correct --ledger path/to/revision-4-history.jsonl
 python -m src.victoria_trace verify --ledger data/halcyon_history.jsonl
 python -m src.victoria_trace demo
+python -m src.victoria_trace chat
 ```
 
 Use `python3` instead of `python` on macOS or Linux. `correct` deliberately
 requires an explicit working-file path and refuses an already corrected ledger.
 The `demo` command is the safest complete path: it creates revision-4 history in
 a temporary directory, applies the correction there, verifies it, and removes
-the disposable data automatically. It never modifies the reference fixture.
+the disposable data automatically. The `chat` command keeps its revision-4 or
+revision-6 session ledger only in memory and discards it on reset or exit. Neither
+command modifies the reference fixture.
 
 ## What the implementation proves
 
@@ -134,7 +186,8 @@ The vertical slice is deliberately small:
   case (implemented from the revision-4 history);
 - a deterministic regression runner that validates stored assertions and invokes
   the canonical resolver (implemented); and
-- a standard-library test suite and command-line demonstration (implemented).
+- a standard-library test suite, guided command-line proof, and bounded
+  interactive audit mode (implemented).
 
 The implementation targets Python 3.12 and its standard library only. No paid
 service, API key, private data, or network dependency is required. See
@@ -171,10 +224,10 @@ and Linux shells.
 
 The broader Victoria direction is continuity for long-running AI agents, with
 bridge and retrieval layers that can supply relevant versioned memory to future
-agent runtimes. Those broader layers, general-purpose retrieval, and interactive
-audit chat are not implemented in this repository. The current proof deliberately
-focuses on the smallest complete, testable chain from stored history to corrected
-and regression-protected answer.
+agent runtimes. Those broader layers, general-purpose retrieval, and
+general-purpose chat are not implemented in this repository. The current proof
+deliberately focuses on the smallest complete, testable chain from stored history
+to corrected and regression-protected answer.
 
 ## Human, ChatGPT, and Codex collaboration
 

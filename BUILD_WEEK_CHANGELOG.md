@@ -3,6 +3,46 @@
 This file records material work performed specifically for the Victoria Trace
 OpenAI Build Week 2026 project.
 
+## 2026-07-18 — Deterministic interactive audit mode
+
+### Added
+
+- Added the local `python -m src.victoria_trace chat` command as a bounded,
+  user-controlled audit of the existing synthetic Halcyon proof.
+- Added deterministic intent recognition for the current answer, uncertainty,
+  supersession, historical error, evidence, history preservation, correction,
+  before/after comparison, stored regression, full history, help, reset, and
+  exit topics.
+- Added an in-memory disposable session that starts at revision 4, requires
+  explicit confirmation before accepting the canonical correction, uses the
+  existing correction workflow to produce revisions 5–6, and discards session
+  state on reset or exit.
+- Added concise audit renderers whose factual values come from projected state,
+  resolver results, correction results, and regression results.
+- Added focused controller, intent, safety, domain-delegation, fixture-preservation,
+  and real scripted-subprocess tests.
+- Documented the distinction between the fixed guided proof and the bounded
+  interactive audit, including exact no-install commands and a short example.
+
+### Boundaries preserved
+
+- Made no event-schema, ledger, projector, resolver, correction, regression, or
+  reference-fixture changes.
+- Added no LLM, API key, network access, external dependency, general retrieval,
+  bridge layer, general chatbot, web interface, or paid service.
+- Performed no commit or push.
+
+### Verified
+
+- All 168 domain, persistence, regression, guided-CLI, interactive-audit, and
+  end-to-end tests pass on Python 3.12.13 using `unittest`.
+- A real scripted `chat` subprocess starts at revision 4, applies the confirmed
+  correction, runs the generated 12/12 regression, and exits with code 0.
+- The complete manual audit sequence exposes uncertainty, preserved history,
+  append-only correction, corrected resolution, ordered evidence, and stored
+  regression verification while leaving the reference fixture byte-for-byte
+  unchanged.
+
 ## 2026-07-18 — Jury-readiness presentation polish
 
 ### Changed

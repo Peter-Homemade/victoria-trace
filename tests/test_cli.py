@@ -82,7 +82,14 @@ class CommandLineInterfaceTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         self.assertEqual(errors, "")
-        for command in ("show-history", "ask", "correct", "verify", "demo"):
+        for command in (
+            "show-history",
+            "ask",
+            "correct",
+            "verify",
+            "chat",
+            "demo",
+        ):
             self.assertIn(command, output)
         self.assertIn("Local, deterministic demonstration", output)
 
