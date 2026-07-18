@@ -214,6 +214,8 @@ class CommandLineInterfaceTests(unittest.TestCase):
             self.assertEqual(corrected[4].event_id, "COR-001")
             self.assertEqual(corrected[5].event_id, "REG-001")
             self.assertIn("Appended events: COR-001, REG-001", output)
+            self.assertIn("Created revision 5: COR-001", output)
+            self.assertIn("Created revision 6: REG-001", output)
             self.assertIn("persisted together", output)
 
     def test_correct_preserves_exact_original_record_bytes(self) -> None:
@@ -279,7 +281,11 @@ class CommandLineInterfaceTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 1)
             self.assertEqual(errors, "")
-            self.assertIn("[FAIL] answer.location", output)
+            self.assertIn(
+                "[FAIL] Current location matches the human correction",
+                output,
+            )
+            self.assertIn("Assertion ID: answer.location", output)
             self.assertIn("Summary: 11/12 assertions passed", output)
             self.assertIn("Overall: FAILED", output)
             self.assertNotIn("Overall: PASSED", output)
@@ -305,21 +311,67 @@ class CommandLineInterfaceTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(errors, "")
         expected_steps = (
-            "DEMO STEP 1 - HISTORY BEFORE CORRECTION",
-            "DEMO STEP 2 - ASK BEFORE CORRECTION",
-            "DEMO STEP 3 - APPLY HUMAN CORRECTION",
-            "DEMO STEP 4 - ASK THE IDENTICAL QUESTION AGAIN",
-            "DEMO STEP 5 - EXECUTE STORED REGRESSION",
-            "DEMO STEP 6 - FULL PRESERVED HISTORY",
+            "STAGE 1/6 - READ THE MEMORY BEFORE CORRECTION",
+            "STAGE 2/6 - ASK BEFORE CORRECTION",
+            "STAGE 3/6 - APPEND THE HUMAN-OWNER CORRECTION",
+            "STAGE 4/6 - ASK THE SAME QUESTION AFTER CORRECTION",
+            "STAGE 5/6 - RUN THE STORED REGRESSION",
+            "STAGE 6/6 - CONFIRM THE APPEND-ONLY AUDIT TRAIL",
         )
         positions = tuple(output.index(step) for step in expected_steps)
         self.assertEqual(positions, tuple(sorted(positions)))
         self.assertIn("Status: UNCERTAIN", output)
         self.assertIn("Status: SUPPORTED", output)
         self.assertIn("Summary: 12/12 assertions passed", output)
-        self.assertIn("DEMO COMPLETE", output)
+        self.assertIn("PROOF SUMMARY", output)
         self.assertIn("Result: PASS", output)
-        self.assertIn("Reference fixture: unchanged", output)
+        self.assertIn("reference fixture remains unchanged", output)
+
+    def test_demo_explains_the_problem_and_answer_change(self) -> None:
+        exit_code, output, errors = self.invoke("demo")
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(errors, "")
+        self.assertIn("This demonstration shows what changed", output)
+        self.assertIn(
+            "Before: UNCERTAIN | location unresolved | "
+            "format release-manifest/v2",
+            output,
+        )
+        self.assertIn(
+            "After:  SUPPORTED | location public/release.json | "
+            "format release-manifest/v2",
+            output,
+        )
+        self.assertIn("The same deterministic resolver", output)
+
+    def test_demo_makes_append_only_correction_explicit(self) -> None:
+        exit_code, output, _ = self.invoke("demo")
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("Created revision 5: COR-001", output)
+        self.assertIn("Created revision 6: REG-001", output)
+        self.assertIn("no earlier revision was overwritten", output)
+        self.assertIn("CORRECTED HISTORICAL ERROR", output)
+        self.assertIn("REGRESSION-PROTECTED RECORD", output)
+
+    def test_regression_assertions_have_jury_readable_labels(self) -> None:
+        exit_code, output, errors = self.invoke(
+            "verify",
+            "--ledger",
+            str(FIXTURE),
+        )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(errors, "")
+        self.assertIn("Forbidden current location: /api/release", output)
+        self.assertIn(
+            "Forbidden current location: archive-root release.json",
+            output,
+        )
+        self.assertIn("Returned as current answer: no", output)
+        self.assertIn("ANS-001 remains history, not current authority", output)
+        self.assertIn("corrected answer is regression-protected", output)
 
     def test_demo_is_repeatable(self) -> None:
         first_code, first_output, first_errors = self.invoke("demo")
@@ -428,7 +480,7 @@ class CommandLineInterfaceTests(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertEqual(completed.stderr, "")
-        self.assertIn("VICTORIA TRACE - COMPLETE LOCAL DEMO", completed.stdout)
+        self.assertIn("VICTORIA TRACE - GUIDED LOCAL PROOF", completed.stdout)
         self.assertIn("Summary: 12/12 assertions passed", completed.stdout)
         self.assertIn("Result: PASS", completed.stdout)
         self.assertNotIn(str(ROOT), completed.stdout)

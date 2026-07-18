@@ -2,26 +2,36 @@
 
 > Memory that knows when it may be wrong.
 
-Victoria Trace is a local-first, auditable continuity layer for long-running AI
-agents. Its purpose is to preserve not just remembered statements, but also the
-relationships that determine whether a statement is current, superseded,
-uncertain, or corrected.
+Victoria Trace is a local-first, auditable memory layer that preserves how an
+answer changed and the evidence that makes its current state trustworthy.
 
-This repository is the primary OpenAI Build Week 2026 implementation of that
-idea. It currently contains the project foundation, demo specification, immutable
-event model, append-only ledger, synthetic history fixture, and deterministic
-state projector. It also includes a deterministic resolver for the single
-canonical Halcyon question and a human-correction workflow that generates and
-can atomically persist the correction plus its durable regression record. A
-deterministic local regression runner now executes that stored record through the
-same resolver used for normal answering. The completed standard-library CLI makes
-the entire proof visible through stable local terminal output.
+> Most agent memory systems store what was said. Victoria Trace stores what
+> changed, what was corrected, what remains uncertain, and why the current
+> answer should be trusted.
 
-## Requirements and installation
+## The problem
+
+Ordinary agent memory often preserves what was said without reliably preserving
+what changed, what a human corrected, what remains unresolved, or why one claim
+is current while another is only history. That makes continuity difficult to
+audit and old mistakes easy to repeat.
+
+## Current Build Week implementation
+
+This repository implements one narrow, deterministic, auditable vertical slice:
+the fully synthetic Halcyon release-manifest scenario. An append-only event
+ledger records an earlier decision, its supersession, unresolved ambiguity, an
+incorrect answer, a human-owner correction, and a durable regression case. The
+guided CLI makes that complete evidence chain visible.
+
+This is the working Build Week proof, not the full broader Victoria architecture.
+
+## 60-second quick start
 
 - Python 3.12.
-- No package installation or external dependency.
-- No OpenAI API key, paid service, network access, or LLM runtime.
+- No installation and no external dependencies.
+- No API key, paid service, network connection, or LLM runtime.
+- Python standard library only; runtime data is local and synthetic.
 
 Run commands from the repository root. The `src.victoria_trace` module path lets
 the project run directly from a clean checkout without installation or a
@@ -44,6 +54,41 @@ python3 -m unittest discover -s tests
 The first command runs the complete demonstration. The second runs the complete
 test suite.
 
+## What to look for
+
+- Before correction, the location is explicitly `UNCERTAIN`; the resolver does
+  not guess between two candidate paths.
+- The old incorrect answer remains visible as historical evidence, never current
+  authority.
+- The human-owner correction is appended as `COR-001`; it does not rewrite an
+  earlier revision.
+- The same resolver then returns the supported answer
+  `public/release.json` in `release-manifest/v2`.
+- The correction workflow also appends the durable regression record `REG-001`.
+- `REG-001` reruns the question through that same resolver and verifies the old
+  locations are not treated as current again.
+
+## Architecture of the proof
+
+```text
+Synthetic JSONL event ledger
+           |
+           v
+Deterministic state projector
+           |
+           v
+Question resolver
+           |
+           v
+Human correction workflow
+           |
+           v
+Stored regression runner
+           |
+           v
+Guided CLI demonstration
+```
+
 ## CLI commands
 
 ```text
@@ -60,10 +105,10 @@ The `demo` command is the safest complete path: it creates revision-4 history in
 a temporary directory, applies the correction there, verifies it, and removes
 the disposable data automatically. It never modifies the reference fixture.
 
-## The demo promise
+## What the implementation proves
 
-The first vertical slice will answer one question about a fully synthetic
-software project. It will show, with inspectable evidence:
+The vertical slice answers one question about a fully synthetic software project
+and shows, with inspectable evidence:
 
 1. the original decision;
 2. the decision that superseded it;
@@ -73,10 +118,10 @@ software project. It will show, with inspectable evidence:
 6. a rerun of the original question through a regression test proving the same
    error no longer occurs.
 
-The correction will be stored as a versioned memory event. It will not silently
+The correction is stored as a versioned memory event. It does not silently
 overwrite history.
 
-## Completed vertical slice
+## What is implemented now
 
 The vertical slice is deliberately small:
 
@@ -122,13 +167,32 @@ All demonstration data is synthetic. The CLI is entirely local, deterministic,
 and produces restrained ASCII output suitable for PowerShell, macOS Terminal,
 and Linux shells.
 
-## How Codex and GPT-5.6 were used
+## Broader direction
 
-The project owner defined the Victoria concepts, objectives, and constraints and
-reviewed each implementation phase. Codex with GPT-5.6 translated that scope into
-repository documentation, architecture, Python implementation, and tests. Work
-was implemented only in explicitly approved phases, with Codex reporting design
-decisions, risks, and test results after each phase.
+The broader Victoria direction is continuity for long-running AI agents, with
+bridge and retrieval layers that can supply relevant versioned memory to future
+agent runtimes. Those broader layers, general-purpose retrieval, and interactive
+audit chat are not implemented in this repository. The current proof deliberately
+focuses on the smallest complete, testable chain from stored history to corrected
+and regression-protected answer.
+
+## Human, ChatGPT, and Codex collaboration
+
+Peter originated the broader Victoria concepts and remained the project owner and
+decision-maker. He defined the problem, product direction, safety boundaries,
+scope, and acceptance criteria.
+
+During Build Week, Peter collaborated with ChatGPT powered by GPT-5.6 Thinking,
+informally called "Victor" within their long-running design conversation.
+ChatGPT helped translate the concepts into narrow implementation phases,
+challenge assumptions, formulate specifications for Codex, and review completion
+reports. "Victor" is an informal conversational name, not a separate OpenAI
+model, human contributor, or autonomous legal or team identity.
+
+Codex using GPT-5.6 inspected the repository and implemented only the explicitly
+approved phases, reporting design decisions, risks, and test results for human
+review. The final runtime is local and deterministic: GPT-5.6 does not decide
+which historical claim is current or authoritative at runtime.
 
 No application runtime depends on an OpenAI API, an API key, or a paid service.
 All demonstration data is synthetic, and human approval is required before any

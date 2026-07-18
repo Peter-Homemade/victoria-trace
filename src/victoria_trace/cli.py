@@ -15,8 +15,18 @@ from .correction import (
     canonical_correction_request,
 )
 from .ledger import EventLedger, LedgerValidationError
-from .projector import ProjectionError, StateProjection, project_ledger
+from .models import EventKind
+from .projector import (
+    LifecycleState,
+    ProjectedEvent,
+    ProjectionError,
+    StateAnnotation,
+    StateProjection,
+    project_ledger,
+)
 from .regression import (
+    AssertionKind,
+    RegressionAssertion,
     RegressionError,
     RegressionResult,
     RegressionStatus,
@@ -61,6 +71,66 @@ def _format_assertion_value(value: object) -> str:
     return str(value)
 
 
+def _event_meaning(projected: ProjectedEvent) -> str:
+    """Summarize one event's claim without interpreting domain state anew."""
+
+    event = projected.event
+    claim = event.claim
+    if event.kind is EventKind.DECISION:
+        location = claim.get("location", claim.get("location_description"))
+        delivery = str(claim.get("delivery")).replace("_", " ")
+        return (
+            f"release metadata via {delivery} at {location}; "
+            f"format {claim.get('format')}"
+        )
+    if event.kind is EventKind.INTERPRETATION:
+        candidates = claim.get("candidates", ())
+        return (
+            f"ambiguous location with candidates "
+            f"{_format_sequence(tuple(str(item) for item in candidates))}"
+        )
+    if event.kind is EventKind.ANSWER:
+        return (
+            f"recorded {claim.get('outcome')} answer: "
+            f"{claim.get('location')} in {claim.get('format')}"
+        )
+    if event.kind is EventKind.CORRECTION:
+        return (
+            f"human-owner correction: {claim.get('location')} in "
+            f"{claim.get('format')}"
+        )
+    if event.kind is EventKind.REGRESSION:
+        expected = claim.get("expected", {})
+        return (
+            f"stored regression expecting {expected.get('location')} in "
+            f"{expected.get('format')}"
+        )
+    return "stored event"
+
+
+def _jury_state(projected: ProjectedEvent) -> str:
+    """Translate projector-produced state into an audit-friendly label."""
+
+    annotations = projected.annotations
+    if StateAnnotation.REGRESSION_RECORD in annotations:
+        return "REGRESSION-PROTECTED RECORD - durable check, not answer authority"
+    if StateAnnotation.AUTHORITATIVE_HUMAN_CORRECTION in annotations:
+        return "CURRENT HUMAN CORRECTION - authoritative"
+    if StateAnnotation.CORRECTED_BY_HUMAN in annotations:
+        return "CORRECTED HISTORICAL ERROR - retained, not current authority"
+    if StateAnnotation.RECORDED_WRONG_ANSWER in annotations:
+        return "HISTORICAL ERROR - retained, not current authority"
+    if projected.lifecycle is LifecycleState.SUPERSEDED:
+        return "SUPERSEDED - preserved history, not current authority"
+    if projected.lifecycle is LifecycleState.UNRESOLVED:
+        return "UNRESOLVED - no candidate is confirmed"
+    if projected.lifecycle is LifecycleState.RESOLVED:
+        return "RESOLVED - ambiguity closed by the human correction"
+    if projected.lifecycle is LifecycleState.CURRENT:
+        return "CURRENT - active projected state"
+    return "HISTORICAL - preserved evidence, not current authority"
+
+
 def render_history(projection: StateProjection, stream: TextIO) -> None:
     """Render projected history without hiding superseded or historical events."""
 
@@ -90,6 +160,8 @@ def render_history(projection: StateProjection, stream: TextIO) -> None:
 
         print(f"Revision {event.revision}: {event.event_id}", file=stream)
         print(f"  kind: {event.kind.value}", file=stream)
+        print(f"  meaning: {_event_meaning(projected)}", file=stream)
+        print(f"  jury state: {_jury_state(projected)}", file=stream)
         print(f"  lifecycle: {projected.lifecycle.value}", file=stream)
         print(f"  annotations: {_format_sequence(annotations)}", file=stream)
         print(f"  relationships: {_format_sequence(relationships)}", file=stream)
@@ -151,7 +223,12 @@ def render_resolution(
         print(f"{indent}  - none", file=stream)
 
 
-def render_correction(result: CorrectionResult, stream: TextIO) -> None:
+def render_correction(
+    result: CorrectionResult,
+    stream: TextIO,
+    *,
+    include_resolution_details: bool = True,
+) -> None:
     """Render the before/after proof returned by the correction workflow."""
 
     _heading("VICTORIA TRACE - CORRECTION", stream)
@@ -159,11 +236,22 @@ def render_correction(result: CorrectionResult, stream: TextIO) -> None:
     print(f"Original revision: {result.original_revision}", file=stream)
     print(f"Resulting revision: {result.resulting_revision}", file=stream)
     print(
+        f"Created revision 5: {result.correction_event.event_id} "
+        "(authoritative human-owner correction)",
+        file=stream,
+    )
+    print(
+        f"Created revision 6: {result.regression_event.event_id} "
+        f"(durable regression generated from {result.correction_event.event_id})",
+        file=stream,
+    )
+    print(
         "Appended events: " + _format_sequence(result.appended_event_ids),
         file=stream,
     )
     print(
-        "History preservation: PASS - revisions 1-4 preserved unchanged",
+        "Append-only proof: PASS - revisions 1-4 preserved unchanged; "
+        "no earlier revision was overwritten",
         file=stream,
     )
     persistence = (
@@ -172,6 +260,10 @@ def render_correction(result: CorrectionResult, stream: TextIO) -> None:
         else "not requested"
     )
     print(f"Persistence: {persistence}", file=stream)
+
+    if not include_resolution_details:
+        return
+
     print(file=stream)
 
     print("Before correction", file=stream)
@@ -183,7 +275,82 @@ def render_correction(result: CorrectionResult, stream: TextIO) -> None:
     render_resolution(result.after_resolution, stream, title="", indent="  ")
 
 
-def render_regression(result: RegressionResult, stream: TextIO) -> None:
+def _assertion_presentation(
+    assertion: RegressionAssertion,
+    forbidden_location: str | None,
+) -> tuple[str, str, str]:
+    """Return a jury-readable title and value labels for an assertion."""
+
+    kind = assertion.kind
+    if kind is AssertionKind.RESOLVER_STATUS:
+        return (
+            "Resolver returns a supported answer",
+            "Required resolver status",
+            "Observed resolver status",
+        )
+    if kind is AssertionKind.EXPECTED_LOCATION:
+        return (
+            "Current location matches the human correction",
+            "Stored expected location",
+            "Resolver location",
+        )
+    if kind is AssertionKind.EXPECTED_FORMAT:
+        return (
+            "Current format matches the human correction",
+            "Stored expected format",
+            "Resolver format",
+        )
+    if kind is AssertionKind.REQUIRED_EVIDENCE:
+        return (
+            "Resolver uses the stored evidence chain in order",
+            "Required evidence",
+            "Resolver evidence",
+        )
+    if kind is AssertionKind.REQUIRED_PROJECTED_STATE:
+        event_id = assertion.event_ids[0] if assertion.event_ids else "event"
+        return (
+            f"{event_id} has the required projected state",
+            "Required state",
+            "Observed state",
+        )
+    if kind is AssertionKind.FORBIDDEN_CURRENT_LOCATION:
+        display_location = forbidden_location or "stored forbidden location"
+        if display_location == "release.json":
+            display_location = "archive-root release.json"
+        return (
+            f"Forbidden current location: {display_location}",
+            "Must be returned as current answer",
+            "Returned as current answer",
+        )
+    if kind is AssertionKind.EXCLUDED_ANSWER_EVIDENCE:
+        return (
+            "ANS-001 remains history, not current authority",
+            "May influence current answer",
+            "Influences current answer",
+        )
+    return (
+        "REG-001 does not influence the answer it verifies",
+        "May influence current answer",
+        "Influences current answer",
+    )
+
+
+def _presentation_value(kind: AssertionKind, value: object) -> str:
+    if kind in {
+        AssertionKind.FORBIDDEN_CURRENT_LOCATION,
+        AssertionKind.EXCLUDED_ANSWER_EVIDENCE,
+        AssertionKind.EXCLUDED_REGRESSION_EVIDENCE,
+    } and isinstance(value, bool):
+        return "yes" if value else "no"
+    return _format_assertion_value(value)
+
+
+def render_regression(
+    result: RegressionResult,
+    stream: TextIO,
+    *,
+    forbidden_locations: tuple[str, ...] = (),
+) -> None:
     """Render every stored assertion and an unambiguous final summary."""
 
     _heading("VICTORIA TRACE - REGRESSION VERIFY", stream)
@@ -199,22 +366,38 @@ def render_regression(result: RegressionResult, stream: TextIO) -> None:
     print("Assertions", file=stream)
     print("----------", file=stream)
 
+    forbidden_index = 0
     for assertion in result.assertions:
+        forbidden_location = None
+        if assertion.kind is AssertionKind.FORBIDDEN_CURRENT_LOCATION:
+            if forbidden_index < len(forbidden_locations):
+                forbidden_location = forbidden_locations[forbidden_index]
+            forbidden_index += 1
+        title, expected_label, actual_label = _assertion_presentation(
+            assertion,
+            forbidden_location,
+        )
         label = "PASS" if assertion.passed else "FAIL"
+        print(f"[{label}] {title}", file=stream)
+        negative_check = assertion.kind in {
+            AssertionKind.FORBIDDEN_CURRENT_LOCATION,
+            AssertionKind.EXCLUDED_ANSWER_EVIDENCE,
+            AssertionKind.EXCLUDED_REGRESSION_EVIDENCE,
+        }
+        if not negative_check:
+            print(
+                f"       {expected_label}: "
+                f"{_presentation_value(assertion.kind, assertion.expected)}",
+                file=stream,
+            )
         print(
-            f"[{label}] {assertion.assertion_id} ({assertion.kind.value})",
+            f"       {actual_label}: "
+            f"{_presentation_value(assertion.kind, assertion.actual)}",
             file=stream,
         )
         print(
-            f"       expected: {_format_assertion_value(assertion.expected)}",
-            file=stream,
-        )
-        print(
-            f"       actual: {_format_assertion_value(assertion.actual)}",
-            file=stream,
-        )
-        print(
-            f"       events: {_format_sequence(assertion.event_ids)}",
+            f"       Result: {label}; Assertion ID: {assertion.assertion_id}; "
+            f"events: {_format_sequence(assertion.event_ids)}",
             file=stream,
         )
 
@@ -224,6 +407,11 @@ def render_regression(result: RegressionResult, stream: TextIO) -> None:
     print(f"Summary: {passed}/{total} assertions passed", file=stream)
     print(f"Overall: {result.status.value.upper()}", file=stream)
     print(f"Reason: {result.reason.value}", file=stream)
+    if result.status is RegressionStatus.PASSED:
+        print(
+            "Proof: PASS - the corrected answer is regression-protected",
+            file=stream,
+        )
 
 
 def _load_projection(
@@ -281,7 +469,15 @@ def _command_verify(
 ) -> int:
     _, projection = _load_projection(ledger_path)
     result = run_regression(projection, _REGRESSION_EVENT_ID)
-    render_regression(result, stream)
+    stored_locations = projection.get(_REGRESSION_EVENT_ID).event.claim.get(
+        "forbidden_locations",
+        (),
+    )
+    render_regression(
+        result,
+        stream,
+        forbidden_locations=tuple(str(item) for item in stored_locations),
+    )
     if result.status is RegressionStatus.FAILED:
         return EXIT_FAILURE
     return EXIT_SUCCESS
@@ -303,14 +499,65 @@ def _create_disposable_revision_four(path: Path) -> tuple[EventLedger, bytes]:
 
 def _demo_step(number: int, title: str, stream: TextIO) -> None:
     print(file=stream)
-    print(f"DEMO STEP {number} - {title}", file=stream)
-    print("-" * (14 + len(str(number)) + len(title)), file=stream)
+    heading = f"STAGE {number}/6 - {title}"
+    print(heading, file=stream)
+    print("-" * len(heading), file=stream)
+
+
+def _render_answer_comparison(
+    result: CorrectionResult,
+    stream: TextIO,
+) -> None:
+    before = result.before_resolution
+    after = result.after_resolution
+    print(file=stream)
+    print("BEFORE / AFTER COMPARISON", file=stream)
+    print("-------------------------", file=stream)
+    print(
+        f"Before: {before.status.value.upper()} | "
+        "location unresolved | "
+        f"format {before.format}",
+        file=stream,
+    )
+    print(
+        f"After:  {after.status.value.upper()} | "
+        f"location {after.location} | format {after.format}",
+        file=stream,
+    )
+    print(
+        "Why it changed: COR-001 resolved INT-001 with explicit human-owner "
+        "authority. The same deterministic resolver then evaluated the new "
+        "append-only state.",
+        file=stream,
+    )
 
 
 def _command_demo(stream: TextIO) -> int:
-    _heading("VICTORIA TRACE - COMPLETE LOCAL DEMO", stream)
+    _heading("VICTORIA TRACE - GUIDED LOCAL PROOF", stream)
+    print(
+        "Most agent memory systems store what was said. This demonstration shows "
+        "what changed, what remains uncertain, and why a corrected answer "
+        "can be trusted.",
+        file=stream,
+    )
+    print(
+        "Proof path: earlier decision -> superseding decision -> unresolved "
+        "ambiguity -> wrong historical answer -> human correction -> stored "
+        "regression.",
+        file=stream,
+    )
+    print(f"Canonical question: {CANONICAL_QUESTION}", file=stream)
+    print(
+        "State labels distinguish CURRENT, SUPERSEDED, UNRESOLVED, RESOLVED, "
+        "CORRECTED, HISTORICAL, and REGRESSION-PROTECTED records.",
+        file=stream,
+    )
     print("All people, projects, decisions, and data are synthetic.", file=stream)
-    print("The demo uses disposable local data and no network or API.", file=stream)
+    print(
+        "The demo uses disposable local data, the Python standard library, "
+        "and no network, API, or LLM runtime.",
+        file=stream,
+    )
     reference_bytes = _REFERENCE_FIXTURE.read_bytes()
 
     with tempfile.TemporaryDirectory(prefix="victoria-trace-demo-") as directory:
@@ -319,7 +566,7 @@ def _command_demo(stream: TextIO) -> int:
             working_path
         )
 
-        _demo_step(1, "HISTORY BEFORE CORRECTION", stream)
+        _demo_step(1, "READ THE MEMORY BEFORE CORRECTION", stream)
         if _command_show_history(working_path, stream) != EXIT_SUCCESS:
             raise CLIError("could not show pre-correction history")
 
@@ -327,19 +574,29 @@ def _command_demo(stream: TextIO) -> int:
         if _command_ask(working_path, 4, stream) != EXIT_SUCCESS:
             raise CLIError("pre-correction question could not be evaluated")
 
-        _demo_step(3, "APPLY HUMAN CORRECTION", stream)
-        if _command_correct(working_path, stream) != EXIT_SUCCESS:
-            raise CLIError("correction did not complete")
+        _demo_step(3, "APPEND THE HUMAN-OWNER CORRECTION", stream)
+        working_ledger = EventLedger.load_jsonl(working_path)
+        correction_result = apply_correction_to_file(
+            working_path,
+            working_ledger,
+            canonical_correction_request(),
+        )
+        render_correction(
+            correction_result,
+            stream,
+            include_resolution_details=False,
+        )
 
-        _demo_step(4, "ASK THE IDENTICAL QUESTION AGAIN", stream)
+        _demo_step(4, "ASK THE SAME QUESTION AFTER CORRECTION", stream)
         if _command_ask(working_path, 6, stream) != EXIT_SUCCESS:
             raise CLIError("post-correction question could not be evaluated")
+        _render_answer_comparison(correction_result, stream)
 
-        _demo_step(5, "EXECUTE STORED REGRESSION", stream)
+        _demo_step(5, "RUN THE STORED REGRESSION", stream)
         if _command_verify(working_path, stream) != EXIT_SUCCESS:
             raise CLIError("stored regression did not pass")
 
-        _demo_step(6, "FULL PRESERVED HISTORY", stream)
+        _demo_step(6, "CONFIRM THE APPEND-ONLY AUDIT TRAIL", stream)
         if _command_show_history(working_path, stream) != EXIT_SUCCESS:
             raise CLIError("could not show corrected history")
 
@@ -353,12 +610,40 @@ def _command_demo(stream: TextIO) -> int:
     if _REFERENCE_FIXTURE.read_bytes() != reference_bytes:
         raise CLIError("demo detected a changed reference fixture")
 
-    print("DEMO COMPLETE", file=stream)
+    print("PROOF SUMMARY", file=stream)
     print("=============", file=stream)
+    print(
+        "[PASS] History: the earlier decision, supersession, ambiguity, and "
+        "wrong answer remain visible.",
+        file=stream,
+    )
+    print(
+        "[PASS] Correction: COR-001 and REG-001 were appended together; "
+        "revisions 1-4 were not overwritten.",
+        file=stream,
+    )
+    print(
+        "[PASS] Current answer: the same resolver now returns SUPPORTED - "
+        "public/release.json in release-manifest/v2.",
+        file=stream,
+    )
+    print(
+        "[PASS] Regression-protected: REG-001 passed 12/12 assertions and will "
+        "fail if an old location is treated as current again.",
+        file=stream,
+    )
+    print(
+        "[PASS] Safety: disposable synthetic data was used; the reference "
+        "fixture remains unchanged.",
+        file=stream,
+    )
+    print(
+        "Trust basis: explicit relationships, human-owner authority, and "
+        "deterministic projection and resolution - never timestamp recency "
+        "or an LLM judgment at runtime.",
+        file=stream,
+    )
     print("Result: PASS", file=stream)
-    print("Regression: 12/12 assertions passed", file=stream)
-    print("History: revisions 1-4 preserved; revisions 5-6 appended", file=stream)
-    print("Reference fixture: unchanged", file=stream)
     return EXIT_SUCCESS
 
 

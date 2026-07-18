@@ -3,6 +3,43 @@
 This file records material work performed specifically for the Victoria Trace
 OpenAI Build Week 2026 project.
 
+## 2026-07-18 — Jury-readiness presentation polish
+
+### Changed
+
+- Reorganized the guided demo into six clearly named stages with a concise
+  opening explanation, an explicit before/after answer comparison, and a final
+  human-readable proof summary.
+- Added jury-facing state labels and claim summaries while preserving lifecycle,
+  annotation, relationship, evidence, and provenance details.
+- Replaced raw boolean-focused regression presentation with meaningful assertion
+  titles and labels, while retaining stable assertion IDs and event IDs.
+- Reworked the top of the README around the problem, current Build Week vertical
+  slice, 60-second no-install quick start, what to look for, proof architecture,
+  present implementation, and broader direction.
+- Clarified the factual roles of Peter, ChatGPT powered by GPT-5.6 Thinking
+  (informally "Victor"), and Codex using GPT-5.6 during Build Week.
+- Added focused semantic presentation tests without using brittle full-screen
+  snapshots.
+
+### Boundaries preserved
+
+- Made no event-schema, ledger, projector, resolver, correction, regression, or
+  reference-fixture changes.
+- Added no interactive chat, network access, API use, LLM runtime, external
+  dependency, web interface, framework, packaging, or deployment behavior.
+- Performed no commit or push.
+
+### Verified
+
+- All 144 domain, persistence, regression, CLI, presentation, and end-to-end
+  tests pass on Python 3.12.13 using `unittest`.
+- The guided demo completes with exit code 0, displays uncertainty before the
+  correction, a supported answer afterward, 12/12 passing regression assertions,
+  and a final append-only proof summary.
+- `git diff --check` reports no whitespace errors; only the four intended
+  presentation, documentation, and test files are modified.
+
 ## 2026-07-18 — Complete local CLI demonstration
 
 ### Added
