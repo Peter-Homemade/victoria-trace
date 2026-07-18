@@ -3,6 +3,46 @@
 This file records material work performed specifically for the Victoria Trace
 OpenAI Build Week 2026 project.
 
+## 2026-07-18 — Complete local CLI demonstration
+
+### Added
+
+- Added the standard-library `show-history`, `ask`, `correct`, `verify`, and
+  `demo` commands with deterministic ASCII presentation and meaningful exit
+  codes.
+- Added the `python -m src.victoria_trace` module entry point, runnable directly
+  from a clean checkout without installation or a `PYTHONPATH` change.
+- Kept command handlers thin by delegating ledger loading, projection, answering,
+  correction persistence, and regression execution to the existing public
+  domain APIs.
+- Added a repeatable complete demo that creates revision-4 history in a temporary
+  directory, applies the correction there, executes the generated regression,
+  proves byte and event preservation, and checks that the reference fixture is
+  unchanged.
+- Added focused CLI tests for output, revision-specific answers, correction
+  safety, regression exit codes, repeatability, deterministic presentation, API
+  delegation, and a real subprocess invocation from the repository root.
+- Documented exact Windows PowerShell, macOS/Linux, demo, test, and individual
+  command invocations without requiring package installation.
+
+### Boundaries preserved
+
+- Made no event-schema, ledger, projector, resolver, correction, regression,
+  synthetic-fixture, scenario, or earlier-test changes.
+- Did not add a web UI, API server, network access, LLM calls, embeddings,
+  semantic search, external dependencies, packaging, or publishing behavior.
+- Performed no commit or push.
+
+### Verified
+
+- All 141 domain, persistence, regression, CLI, and end-to-end tests pass on
+  Python 3.12.13 using `unittest`.
+- The real `python -m src.victoria_trace demo` subprocess completes with exit
+  code 0, reports 12/12 assertions passing, and leaves the reference fixture
+  unchanged.
+- Confirmed by SHA-256 comparison that all existing core files, the synthetic
+  fixture, and all 119 earlier tests remained unchanged.
+
 ## 2026-07-18 — Deterministic stored-regression runner
 
 ### Added

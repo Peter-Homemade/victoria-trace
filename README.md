@@ -14,8 +14,51 @@ state projector. It also includes a deterministic resolver for the single
 canonical Halcyon question and a human-correction workflow that generates and
 can atomically persist the correction plus its durable regression record. A
 deterministic local regression runner now executes that stored record through the
-same resolver used for normal answering. Command-line behavior and polished
-terminal presentation have not yet been implemented.
+same resolver used for normal answering. The completed standard-library CLI makes
+the entire proof visible through stable local terminal output.
+
+## Requirements and installation
+
+- Python 3.12.
+- No package installation or external dependency.
+- No OpenAI API key, paid service, network access, or LLM runtime.
+
+Run commands from the repository root. The `src.victoria_trace` module path lets
+the project run directly from a clean checkout without installation or a
+`PYTHONPATH` change.
+
+### Windows PowerShell
+
+```powershell
+python -m src.victoria_trace demo
+python -m unittest discover -s tests
+```
+
+### macOS and Linux
+
+```bash
+python3 -m src.victoria_trace demo
+python3 -m unittest discover -s tests
+```
+
+The first command runs the complete demonstration. The second runs the complete
+test suite.
+
+## CLI commands
+
+```text
+python -m src.victoria_trace show-history
+python -m src.victoria_trace ask --revision 4
+python -m src.victoria_trace correct --ledger path/to/revision-4-history.jsonl
+python -m src.victoria_trace verify --ledger data/halcyon_history.jsonl
+python -m src.victoria_trace demo
+```
+
+Use `python3` instead of `python` on macOS or Linux. `correct` deliberately
+requires an explicit working-file path and refuses an already corrected ledger.
+The `demo` command is the safest complete path: it creates revision-4 history in
+a temporary directory, applies the correction there, verifies it, and removes
+the disposable data automatically. It never modifies the reference fixture.
 
 ## The demo promise
 
@@ -33,7 +76,7 @@ software project. It will show, with inspectable evidence:
 The correction will be stored as a versioned memory event. It will not silently
 overwrite history.
 
-## Planned vertical slice
+## Completed vertical slice
 
 The vertical slice is deliberately small:
 
@@ -46,7 +89,7 @@ The vertical slice is deliberately small:
   case (implemented from the revision-4 history);
 - a deterministic regression runner that validates stored assertions and invokes
   the canonical resolver (implemented); and
-- a standard-library test suite and command-line demonstration.
+- a standard-library test suite and command-line demonstration (implemented).
 
 The implementation targets Python 3.12 and its standard library only. No paid
 service, API key, private data, or network dependency is required. See
@@ -62,6 +105,22 @@ revision 6 without rewriting revisions 1–4. The regression record is durable,
 machine-readable, and executes locally against the same projected state and
 resolver as a normal question. The correction-generated case passes
 deterministically after correction.
+
+The full demo sequence is:
+
+1. Show all four pre-correction events and their projected states.
+2. Ask the canonical question and display unresolved location uncertainty.
+3. Apply Mira Chen's synthetic human-owner correction, creating `COR-001` and
+   `REG-001` while preserving revisions 1–4.
+4. Ask the identical question and display `public/release.json` with
+   `release-manifest/v2`.
+5. Execute `REG-001` through the normal resolver and show 12/12 assertions
+   passing.
+6. Show all six events to prove history was appended rather than overwritten.
+
+All demonstration data is synthetic. The CLI is entirely local, deterministic,
+and produces restrained ASCII output suitable for PowerShell, macOS Terminal,
+and Linux shells.
 
 ## How Codex and GPT-5.6 were used
 
