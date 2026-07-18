@@ -10,7 +10,8 @@ uncertain, or corrected.
 This repository is the primary OpenAI Build Week 2026 implementation of that
 idea. It currently contains the project foundation, demo specification, immutable
 event model, append-only ledger, synthetic history fixture, and deterministic
-state projector. Answering, correction workflows, regression execution, and
+state projector. It also includes a deterministic resolver for the single
+canonical Halcyon question. Correction workflows, regression execution, and
 command-line behavior have not yet been implemented.
 
 ## The demo promise
@@ -37,7 +38,7 @@ The vertical slice is deliberately small:
 - a deterministic projector that derives auditable state from complete or
   revision-prefix ledger history (implemented);
 - a narrow question resolver that returns an answer, confidence state, and
-  evidence chain;
+  evidence chain (implemented for the canonical synthetic question);
 - a correction workflow that appends a new revision and records a regression
   case; and
 - a standard-library test suite and command-line demonstration.
@@ -46,6 +47,10 @@ The implementation targets Python 3.12 and its standard library only. No paid
 service, API key, private data, or network dependency is required. See
 [the scoped acceptance criteria](docs/SCOPE.md) and
 [the synthetic scenario](docs/DEMO_SCENARIO.md).
+
+Before the human correction, the resolver returns explicit structured location
+uncertainty and does not choose between candidate paths. After the correction, it
+returns the supported location and format with ordered projected evidence.
 
 ## How Codex and GPT-5.6 were used
 

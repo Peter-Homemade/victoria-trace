@@ -3,6 +3,38 @@
 This file records material work performed specifically for the Victoria Trace
 OpenAI Build Week 2026 project.
 
+## 2026-07-18 — Deterministic canonical-question resolver
+
+### Added
+
+- Implemented deterministic resolution of the single canonical Halcyon question
+  from `StateProjection` rather than raw ledger or fixture data.
+- Added immutable answer status, machine-readable reason, structured uncertainty,
+  evidence-role, evidence-reference, and resolution-result models.
+- Returned explicit location ambiguity through revisions 3 and 4 without choosing
+  a candidate or treating `ANS-001` as authority.
+- Returned the supported `public/release.json` and `release-manifest/v2` answer
+  through revisions 5 and 6 from the authoritative projected correction.
+- Added focused tests for matching, normalization, unsupported questions,
+  revision-specific behavior, evidence semantics, structured uncertainty,
+  immutability, deterministic results, missing evidence, inconsistent state,
+  conflicting authority, and timestamp independence.
+
+### Boundaries preserved
+
+- Made no event-schema, ledger, projector, synthetic-fixture, or earlier-test
+  changes.
+- Did not implement correction creation or persistence, regression-case creation
+  or execution, CLI commands, network access, APIs, semantic search, or LLM calls.
+- Performed no commit or push.
+
+### Verified
+
+- All 52 model, ledger, projector, and resolver tests pass on Python 3.12.13
+  using `unittest`.
+- Confirmed by SHA-256 comparison that the event model, ledger, projector,
+  synthetic fixture, and all 31 earlier tests remained unchanged.
+
 ## 2026-07-18 — Deterministic state projector
 
 ### Added
