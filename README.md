@@ -29,14 +29,16 @@ This is the working Build Week proof, not the full broader Victoria architecture
 
 ## 60-second quick start
 
-- Python 3.12.
-- No installation and no external dependencies.
-- No API key, paid service, network connection, or LLM runtime.
-- Python standard library only; runtime data is local and synthetic.
+- Python 3.12 or newer is required.
+- No project or package installation and no virtual environment are required.
+- No third-party Python dependencies are required; the standard library is
+  sufficient.
+- No API key, paid service, LLM runtime, or network connection is required after
+  cloning. Runtime data is local and synthetic.
 
 Run commands from the repository root. The `src.victoria_trace` module path lets
-the project run directly from a clean checkout without installation or a
-`PYTHONPATH` change.
+the project run directly from a clean checkout without installing Victoria Trace
+or changing `PYTHONPATH`.
 
 ### Windows PowerShell
 
@@ -57,6 +59,17 @@ All tests:
 ```powershell
 python -m unittest discover -s tests
 ```
+
+If the `python` command is unavailable, use the common Windows Python launcher:
+
+```powershell
+py -3.12 -m src.victoria_trace demo
+py -3.12 -m src.victoria_trace chat
+py -3.12 -m unittest discover -s tests
+```
+
+If neither `python` nor `py -3.12` is available, first install or otherwise
+provide Python 3.12 or newer.
 
 ### macOS and Linux
 
@@ -81,8 +94,9 @@ python3 -m unittest discover -s tests
 The guided proof runs the complete evidence line automatically. The interactive
 audit lets a judge investigate supported Halcyon topics in any order, starting at
 revision 4 before correction. It is deterministic and deliberately limited: it
-is not an LLM or general chatbot. Neither mode requires installation, an API key,
-a network connection, or a paid service.
+is not an LLM or general chatbot. Once Python is available, neither mode requires
+installing Victoria Trace or any package, creating a virtual environment, using
+an API key, connecting to a network after cloning, or paying for a service.
 
 ### Example interactive audit
 
