@@ -3,6 +3,42 @@
 This file records material work performed specifically for the Victoria Trace
 OpenAI Build Week 2026 project.
 
+## 2026-07-18 — Human correction and regression-record creation
+
+### Added
+
+- Implemented an immutable human-correction request and structured workflow
+  result for the canonical synthetic correction.
+- Validated the revision-4 projection and uncertain resolver result before
+  generating `COR-001` as revision 5 and `REG-001` as revision 6.
+- Verified post-correction projection and resolution while preserving revisions
+  1–4 and excluding `REG-001` from answer authority.
+- Added optional all-or-nothing JSON Lines persistence using a validated
+  same-directory temporary file, flush, `fsync`, and one atomic replacement.
+- Added focused tests for event construction, reference equivalence, preconditions,
+  postconditions, immutability, determinism, duplicate rejection, exact byte
+  preservation, file/ledger matching, reload, and handled persistence failures.
+
+### Boundaries preserved
+
+- Made no event-schema, ledger, projector, resolver, synthetic-fixture, or
+  earlier-test changes.
+- Created the durable regression record but did not implement or invoke a
+  regression runner.
+- Did not implement CLI commands, presentation, network access, APIs, semantic
+  search, external dependencies, or LLM calls.
+- Performed no commit or push.
+
+### Verified
+
+- All 79 model, ledger, projector, resolver, and correction-workflow tests pass
+  on Python 3.12.13 using `unittest`.
+- Confirmed by SHA-256 comparison that the event model, ledger, projector,
+  resolver, completed synthetic fixture, and all 52 earlier tests remained
+  unchanged.
+- Confirmed that the generated `COR-001` and `REG-001` events are semantically
+  equivalent to the corresponding completed reference-fixture events.
+
 ## 2026-07-18 — Deterministic canonical-question resolver
 
 ### Added

@@ -40,16 +40,16 @@ The finished vertical slice must:
 | Append-only ledger | Store ordered, versioned JSON records locally; never overwrite earlier memory. | Implemented |
 | State projector | Replay complete or revision-prefix history and derive immutable lifecycle, semantic, and causal state. | Implemented |
 | Question resolver | Deterministically resolve the canonical synthetic question with structured uncertainty and ordered projected evidence. | Implemented |
-| Correction service | Validate and append a human correction plus its regression case atomically. | Placeholder only |
+| Correction service | Validate revision-4 state, create revisions 5–6, and atomically persist the correction plus durable regression record. | Implemented |
 | CLI | Expose `show-history`, `ask`, `correct`, and `verify`-style demo operations. | Not implemented |
-| Tests | Check replay rules, evidence output, immutability, correction behavior, and the generated regression. | Ledger, projector, and resolver coverage implemented; later phases pending |
+| Tests | Check replay rules, evidence output, immutability, correction behavior, and the generated regression. | Ledger, projector, resolver, and correction-creation coverage implemented; execution pending |
 
 The initial implementation uses newline-delimited JSON for reviewable fixtures and
 Python 3.12 standard-library code for the event model, validation, persistence,
 state projection, canonical-question resolution, and tests. If atomic local
-updates become necessary beyond the single-process demo, `sqlite3` is the
-preferred standard-library alternative; using both storage approaches is out of
-scope for the first slice.
+updates become necessary beyond the implemented same-directory temporary-file
+replacement, `sqlite3` is the preferred standard-library alternative; using both
+storage approaches is out of scope for the first slice.
 
 ## Minimal memory model
 
