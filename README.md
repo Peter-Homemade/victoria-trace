@@ -12,8 +12,10 @@ idea. It currently contains the project foundation, demo specification, immutabl
 event model, append-only ledger, synthetic history fixture, and deterministic
 state projector. It also includes a deterministic resolver for the single
 canonical Halcyon question and a human-correction workflow that generates and
-can atomically persist the correction plus its durable regression record.
-Regression execution and command-line behavior have not yet been implemented.
+can atomically persist the correction plus its durable regression record. A
+deterministic local regression runner now executes that stored record through the
+same resolver used for normal answering. Command-line behavior and polished
+terminal presentation have not yet been implemented.
 
 ## The demo promise
 
@@ -41,7 +43,9 @@ The vertical slice is deliberately small:
 - a narrow question resolver that returns an answer, confidence state, and
   evidence chain (implemented for the canonical synthetic question);
 - a correction workflow that appends a new revision and records a regression
-  case (implemented from the revision-4 history); and
+  case (implemented from the revision-4 history);
+- a deterministic regression runner that validates stored assertions and invokes
+  the canonical resolver (implemented); and
 - a standard-library test suite and command-line demonstration.
 
 The implementation targets Python 3.12 and its standard library only. No paid
@@ -54,8 +58,10 @@ uncertainty and does not choose between candidate paths. After the correction, i
 returns the supported location and format with ordered projected evidence.
 
 The correction workflow generates `COR-001` at revision 5 and `REG-001` at
-revision 6 without rewriting revisions 1–4. The regression record is durable and
-machine-readable, but it is not executed yet.
+revision 6 without rewriting revisions 1–4. The regression record is durable,
+machine-readable, and executes locally against the same projected state and
+resolver as a normal question. The correction-generated case passes
+deterministically after correction.
 
 ## How Codex and GPT-5.6 were used
 

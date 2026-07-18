@@ -3,6 +3,44 @@
 This file records material work performed specifically for the Victoria Trace
 OpenAI Build Week 2026 project.
 
+## 2026-07-18 — Deterministic stored-regression runner
+
+### Added
+
+- Added immutable regression-status, reason, assertion, and result models with
+  stable assertion ordering and machine-readable failures.
+- Implemented projected regression discovery and strict validation of stored
+  questions, expected answers, evidence, projected states, forbidden current
+  locations, and `generated_from` correction authority.
+- Executed stored questions exclusively through the existing
+  `resolve_question()` function and compared its `ResolutionResult` with the
+  `REG-001` claim.
+- Distinguished missing records and invalid definitions with domain-specific
+  errors from valid regressions that execute and return failed assertions.
+- Added deterministic revision-ordered `run_all_regressions()` discovery and
+  execution for later CLI use.
+- Added an end-to-end test proving that `REG-001` created by
+  `apply_correction()` is directly executable and passes after correction.
+
+### Boundaries preserved
+
+- Made no event-schema, ledger, projector, resolver, correction-workflow,
+  synthetic-fixture, or earlier-test changes.
+- Did not implement CLI commands, terminal presentation, file-based runner
+  shortcuts, network access, APIs, semantic search, external dependencies, or
+  LLM calls.
+- Performed no commit or push.
+
+### Verified
+
+- All 119 model, ledger, projector, resolver, correction-workflow, and
+  regression-runner tests pass on Python 3.12.13 using `unittest`.
+- Confirmed by SHA-256 comparison that all core files, the completed synthetic
+  fixture, and all 79 earlier tests remained unchanged.
+- Confirmed end to end that the correction workflow's newly generated `REG-001`
+  executes the normal resolver and passes from the resulting revision-6
+  projection.
+
 ## 2026-07-18 — Human correction and regression-record creation
 
 ### Added
