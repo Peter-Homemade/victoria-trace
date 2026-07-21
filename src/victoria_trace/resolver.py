@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Peter Van Geldorp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Deterministic resolution of the single synthetic Halcyon question."""
 
 from __future__ import annotations

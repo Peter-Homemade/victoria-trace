@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Peter Van Geldorp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Deterministic projection of immutable ledger events into auditable state."""
 
 from __future__ import annotations

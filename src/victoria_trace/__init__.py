@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Peter Van Geldorp
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Core types for the Victoria Trace continuity ledger."""
 
 from .ledger import EventLedger, LedgerFormatError, LedgerValidationError

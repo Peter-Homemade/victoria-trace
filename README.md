@@ -282,6 +282,13 @@ commit or push.
 - [Build Week changelog](BUILD_WEEK_CHANGELOG.md)
 - [Contributor and agent instructions](AGENTS.md)
 
+## License
+
+Copyright (C) 2026 Peter Van Geldorp
+
+Victoria Trace is licensed under the GNU Affero General Public License
+version 3 or later. See [LICENSE](LICENSE) for the full license text.
+
 Repository: <https://github.com/Peter-Homemade/victoria-trace>
 ## License
 
