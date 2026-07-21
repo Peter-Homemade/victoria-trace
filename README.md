@@ -283,3 +283,11 @@ commit or push.
 - [Contributor and agent instructions](AGENTS.md)
 
 Repository: <https://github.com/Peter-Homemade/victoria-trace>
+## License
+
+Copyright (C) 2026 Peter Van Geldorp
+
+Victoria Trace is free software licensed under the GNU Affero General
+Public License, version 3 or any later version.
+
+See [LICENSE](LICENSE) for the full license text.
